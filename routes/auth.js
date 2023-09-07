@@ -3,7 +3,8 @@ const { body, validationResult } = require('express-validator');
 const {User} = require("../db/User");
 const bcrypt = require("bcrypt");
 const JWT = require("jsonwebtoken");
-const timeout = "120s";
+const token_time_out = "120s";
+const exit_time = "1s"
 const blacklist = [];
 
 router.get("/", (req, res) => {
@@ -45,16 +46,9 @@ router.post(
       email,
       password: hashedPassword,
     })
-    
-    //JWTの発行（クライアントへの発行）
-    const token = await JWT.sign({
-      email,
-    },
-    "SECRET_KEY", //本来は、envなどで第三者に見られないようにする必要がある。
-    {
-      expiresIn: timeout,
-    }
-    );
+
+    // トークンを生成
+    const token = generateToken(email, token_time_out);
 
     console.log("トークンがクライアントに渡さされました");
     return res.json({
@@ -95,15 +89,8 @@ router.post("/login", async (req, res) => {
     ])
   }
 
-  const token = await JWT.sign(
-    {
-      email,
-    },
-    "SECRET_KEY", //本来は、envなどで第三者に見られないようにする必要がある。
-    {
-      expiresIn: timeout,
-    }
-  );
+  ///トークンを生成
+  const token = generateToken(email, token_time_out);
 
   console.log("トークンが返却されました");
   return res.json({
@@ -135,15 +122,9 @@ router.post("/logout", async (req, res) => {
   // トークンをブラックリストに追加
   blacklist.push(delete_token);
 
-  const token = await JWT.sign(
-    {
-      delete_token,
-    },
-    "SECRET_KEY", //本来は、envなどで第三者に見られないようにする必要がある。
-    {
-      expiresIn: "1s",
-    }
-  );
+  // トークンを生成
+  const token = generateToken(delete_token, exit_time);
+  console.log(token)
 
   // クライアント側でトークンを更新することを通知
   console.log("ログアウトしました");
@@ -151,5 +132,21 @@ router.post("/logout", async (req, res) => {
     token: token,
   });
 });
+
+// トークンを生成する共通の関数
+function generateToken(para, time) {
+  console.log(para, time)
+  try {
+    const token = JWT.sign(
+      { email: para },
+      "SECRET_KEY", // 本来は、envなどで秘密鍵を設定
+      { expiresIn: time }
+    );
+    return token;
+  } catch (error) {
+    console.error("トークン生成エラー:", error);
+    throw error;
+  }
+}
 
 module.exports = router;
