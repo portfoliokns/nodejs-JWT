@@ -4,6 +4,7 @@ const {User} = require("../db/User");
 const bcrypt = require("bcrypt");
 const JWT = require("jsonwebtoken");
 const timeout = "120s";
+const blacklist = [];
 
 router.get("/", (req, res) => {
   res.send("Hello Auth JS");
@@ -109,6 +110,46 @@ router.post("/login", async (req, res) => {
     token: token,
   })
 
+});
+
+// ログアウト用のAPI
+router.post("/logout", async (req, res) => {
+  const { delete_token } = req.body;
+
+  // トークンの付与チェック
+  if (!delete_token) {
+    console.error("トークンが付与されていません");
+    return res.status(400).json({
+      message: "トークンが付与されていません",
+    });
+  };
+
+  // ブラックリストトークンの有無チェック
+  if (blacklist.includes(delete_token)) {
+    console.error("トークンは既に無効化されています");
+    return res.status(401).json({
+      message: "トークンは既に無効化されています",
+    });
+  };
+
+  // トークンをブラックリストに追加
+  blacklist.push(delete_token);
+
+  const token = await JWT.sign(
+    {
+      delete_token,
+    },
+    "SECRET_KEY", //本来は、envなどで第三者に見られないようにする必要がある。
+    {
+      expiresIn: "1s",
+    }
+  );
+
+  // クライアント側でトークンを更新することを通知
+  console.log("ログアウトしました");
+  return res.json({
+    token: token,
+  });
 });
 
 module.exports = router;
