@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const {User} = require("../db/User");
 const bcrypt = require("bcrypt");
 const JWT = require("jsonwebtoken");
+const timeout = "120s";
 
 router.get("/", (req, res) => {
   res.send("Hello Auth JS");
@@ -50,7 +51,7 @@ router.post(
     },
     "SECRET_KEY", //本来は、envなどで第三者に見られないようにする必要がある。
     {
-      expiresIn: "24h",
+      expiresIn: timeout,
     }
     );
 
@@ -93,13 +94,14 @@ router.post("/login", async (req, res) => {
     ])
   }
 
-  const token = await JWT.sign({
-    email,
-  },
-  "SECRET_KEY", //本来は、envなどで第三者に見られないようにする必要がある。
-  {
-    expiresIn: "24h",
-  }
+  const token = await JWT.sign(
+    {
+      email,
+    },
+    "SECRET_KEY", //本来は、envなどで第三者に見られないようにする必要がある。
+    {
+      expiresIn: timeout,
+    }
   );
 
   console.log("トークンが返却されました");
