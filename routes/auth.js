@@ -6,6 +6,7 @@ const JWT = require("jsonwebtoken");
 const token_time_out = "120s";
 const exit_time = "1s"
 const blacklist = [];
+const checkJWT = require("../middleware/checkJWT");
 
 router.get("/", (req, res) => {
   res.send("Hello Auth JS");
@@ -59,7 +60,7 @@ router.post(
 );
 
 //DBのユーザーを確認するAPI
-router.get("/allUsers", (req, res) => {
+router.post("/allUsers", checkJWT,(req, res) => {
   console.log("登録されているユーザー情報が確認されました。");
   return res.json(User);
 });
@@ -101,7 +102,7 @@ router.post("/login", async (req, res) => {
 });
 
 // ログアウト用のAPI
-router.post("/logout", async (req, res) => {
+router.post("/logout", checkJWT,async (req, res) => {
   const { delete_token } = req.body;
 
   // トークンの付与チェック
