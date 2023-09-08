@@ -103,7 +103,7 @@ router.post("/login", async (req, res) => {
 
 // ログアウト用のAPI
 router.post("/logout", checkJWT,async (req, res) => {
-  const { delete_token } = req.body;
+  const delete_token = req.header("x-auth-token");
 
   // トークンの付与チェック
   if (!delete_token) {
