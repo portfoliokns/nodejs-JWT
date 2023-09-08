@@ -23,14 +23,14 @@ router.post(
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log("バリデーションチェックで問題が発生しました");
+      console.log("バリデーションチェックを通過しませんでした。ユーザーの新規登録はされていません。");
       return res.status(400).json({errors: errors.array()})
     }
 
     //DBにユーザーが存在しているか確認
     const user = User.find((user) => user.email === email)
     if (user) {
-      console.log("すでにユーザーが登録されています");
+      console.log("すでにユーザーが登録されているため、ユーザーの新規登録は行われていません。");
       return res.status(400).json([
         {
           message: "すでにそのユーザーは存在しています。",
@@ -41,25 +41,26 @@ router.post(
     //パスワードの暗号化
     let hashedPassword = await bcrypt.hash(password, 10);
 
-    //DBへの保村（擬似的に保存）
+    //DBへの保存（擬似的に保存）
     User.push({
       email,
       password: hashedPassword,
-    })
+    });
+    console.log("DBへ保存が完了し、ユーザーが新たに登録されました。");
 
     // トークンを生成
     const token = generateToken(email, token_time_out);
 
-    console.log("トークンがクライアントに渡さされました");
+    console.log("トークンがクライアント側に渡さされました。");
     return res.json({
       token: token,
-    })
+    });
   }
 );
 
 //DBのユーザーを確認するAPI
 router.get("/allUsers", (req, res) => {
-  console.log("登録されているユーザー情報が確認されました");
+  console.log("登録されているユーザー情報が確認されました。");
   return res.json(User);
 });
 
@@ -67,32 +68,32 @@ router.get("/allUsers", (req, res) => {
 router.post("/login", async (req, res) => {
   const {email, password} = req.body;
 
+  //ユーザー登録状況をチェック
   const user = User.find((user) => user.email === email);
   if (!user) {
-    console.log("ユーザーが存在しないため、ログイン拒否しました");
+    console.log("ユーザーが存在しないため、ログイン拒否しました。");
     return res.status(400).json([
       {
-        message: "ユーザー名またはパスワードに誤りがあります",
+        message: "ユーザー名またはパスワードに誤りがあります。",
       },
     ]);
   };
 
   //パスワードの複合、照合
   const isMatch = await bcrypt.compare(password, user.password);
-
   if (!isMatch) {
-    console.log("パスワードに誤りがあるため、ログイン拒否しました");
+    console.log("パスワードに誤りがあるため、ログイン拒否しました。");
     return res.status(400).json([
       {
         message: "ユーザー名またはパスワードに誤りがあります"
       }
     ])
   }
+  console.log("ユーザーがログインに成功しました。");
 
   ///トークンを生成
   const token = generateToken(email, token_time_out);
-
-  console.log("トークンが返却されました");
+  console.log("トークンがクライアント側に渡さされました。");
   return res.json({
     token: token,
   })
@@ -105,29 +106,30 @@ router.post("/logout", async (req, res) => {
 
   // トークンの付与チェック
   if (!delete_token) {
-    console.error("トークンが付与されていません");
+    console.log("トークンが付与されていないため、ログアウト処理を終了しました。");
     return res.status(400).json({
-      message: "トークンが付与されていません",
+      message: "トークンが付与されていません。",
     });
   };
 
   // ブラックリストトークンの有無チェック
   if (blacklist.includes(delete_token)) {
-    console.error("トークンは既に無効化されています");
+    console.log("トークンは既にブラックリストに載っています。そのためログアウト処理を終了しました。");
     return res.status(401).json({
-      message: "トークンは既に無効化されています",
+      message: "トークンは既に無効化されています。",
     });
   };
-
+  
   // トークンをブラックリストに追加
   blacklist.push(delete_token);
+  console.log("クライアントから送られてきたトークンをブラックリストに追加しました。");
 
   // トークンを生成
   const token = generateToken(delete_token, exit_time);
-  console.log(token)
+  console.log("新たなトークンを生成しました。");
 
   // クライアント側でトークンを更新することを通知
-  console.log("ログアウトしました");
+  console.log("ログアウトしました。");
   return res.json({
     token: token,
   });
@@ -135,16 +137,17 @@ router.post("/logout", async (req, res) => {
 
 // トークンを生成する共通の関数
 function generateToken(para, time) {
-  console.log(para, time)
+  console.log("メールアドレス：", para, "に対するトークンを有効期限", time, "秒で生成します。");
   try {
     const token = JWT.sign(
       { email: para },
       "SECRET_KEY", // 本来は、envなどで秘密鍵を設定
       { expiresIn: time }
     );
+    console.log("メールアドレス：", para, "に対するトークンが有効期限", time, "秒で生成されました。");
     return token;
   } catch (error) {
-    console.error("トークン生成エラー:", error);
+    console.error("[システムエラー]トークン生成エラー:", error);
     throw error;
   }
 }
