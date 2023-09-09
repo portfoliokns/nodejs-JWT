@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const { publicPosts, privatePosts } = require("../db/Post");
-const checkJWT = require("../middleware/checkJWT");
+const checkJWT = require("../middleware/JWT");
 
 //誰でも見れる記事閲覧用のAPI
 router.get("/public", (req, res) => {
@@ -9,7 +9,7 @@ router.get("/public", (req, res) => {
 });
 
 //JWTを持っている人用のAPI
-router.get("/private", checkJWT,(req, res) => {
+router.get("/private", checkJWT.authenticateToken,(req, res) => {
   console.log("Privateの記事がレスポンスされました");
   res.json(privatePosts);
 });

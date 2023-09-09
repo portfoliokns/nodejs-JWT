@@ -5,7 +5,7 @@ const bcrypt = require("bcrypt");
 const JWT = require("jsonwebtoken");
 const token_time_out = "120s";
 const exit_time = "1s"
-const checkJWT = require("../middleware/checkJWT");
+const checkJWT = require("../middleware/JWT");
 const {UnableToken} = require("../db/UnableToken");
 
 router.get("/", (req, res) => {
@@ -60,7 +60,7 @@ router.post(
 );
 
 //DBのユーザーを確認するAPI
-router.post("/allUsers", checkJWT,(req, res) => {
+router.post("/allUsers", checkJWT.authenticateToken,(req, res) => {
   console.log("登録されているユーザー情報が確認されました。");
   return res.json(User);
 });
@@ -102,13 +102,12 @@ router.post("/login", async (req, res) => {
 });
 
 // ログアウト用のAPI
-router.post("/logout", checkJWT,async (req, res) => {
-  const client_token = req.header("x-auth-token");
+router.post("/logout", checkJWT.authenticateToken,async (req, res) => {
 
   //トークンを無効化
-  UnableToken.push({
-    number: client_token,
-  });
+  const client_token = req.header("x-auth-token");
+  checkJWT.addUnableToken(client_token);
+  console.log("トークンを無効化しました。")
 
   // 新しいトークンを生成
   const token = generateToken(client_token, exit_time);

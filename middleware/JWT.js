@@ -2,7 +2,7 @@ const JWT = require("jsonwebtoken");
 const {UnableToken} = require("../db/UnableToken");
 
 //トークンの有効期限の検証、署名の検証、不正トークンの検証
-module.exports = async (req, res, next) => {
+async function authenticateToken(req, res, next) {
   //JWTをもっているか確認->リクエストヘッダの中のx-auth-tokenを確認
   const token = req.header("x-auth-token");
   console.log(token)
@@ -42,4 +42,16 @@ module.exports = async (req, res, next) => {
       ]);
     }
   }
-}
+};
+
+//無効トークンの追加
+function addUnableToken(token) {
+  UnableToken.push({
+    number: token,
+  });
+};
+
+module.exports = {
+  authenticateToken,
+  addUnableToken,
+};
