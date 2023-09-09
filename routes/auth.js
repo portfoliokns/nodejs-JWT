@@ -5,8 +5,8 @@ const bcrypt = require("bcrypt");
 const JWT = require("jsonwebtoken");
 const token_time_out = "120s";
 const exit_time = "1s"
-const blacklist = [];
 const checkJWT = require("../middleware/checkJWT");
+const {UnableToken} = require("../db/UnableToken");
 
 router.get("/", (req, res) => {
   res.send("Hello Auth JS");
@@ -103,30 +103,15 @@ router.post("/login", async (req, res) => {
 
 // ログアウト用のAPI
 router.post("/logout", checkJWT,async (req, res) => {
-  const delete_token = req.header("x-auth-token");
+  const client_token = req.header("x-auth-token");
 
-  // トークンの付与チェック
-  if (!delete_token) {
-    console.log("トークンが付与されていないため、ログアウト処理を終了しました。");
-    return res.status(400).json({
-      message: "トークンが付与されていません。",
-    });
-  };
+  //トークンを無効化
+  UnableToken.push({
+    number: client_token,
+  });
 
-  // ブラックリストトークンの有無チェック
-  if (blacklist.includes(delete_token)) {
-    console.log("トークンは既にブラックリストに載っています。そのためログアウト処理を終了しました。");
-    return res.status(401).json({
-      message: "トークンは既に無効化されています。",
-    });
-  };
-  
-  // トークンをブラックリストに追加
-  blacklist.push(delete_token);
-  console.log("クライアントから送られてきたトークンをブラックリストに追加しました。");
-
-  // トークンを生成
-  const token = generateToken(delete_token, exit_time);
+  // 新しいトークンを生成
+  const token = generateToken(client_token, exit_time);
   console.log("新たなトークンを生成しました。");
 
   // クライアント側でトークンを更新することを通知
