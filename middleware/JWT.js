@@ -5,7 +5,6 @@ const {UnableToken} = require("../db/UnableToken");
 async function authenticateToken(req, res, next) {
   //JWTをもっているか確認->リクエストヘッダの中のx-auth-tokenを確認
   const token = req.header("x-auth-token");
-  console.log(token)
   if (!token) {
     //トークンの有無チェック
     console.log("トークンが送られてきませんでした（トークンがありませんでした）");
@@ -51,7 +50,23 @@ function addUnableToken(token) {
   });
 };
 
+//トークンを生成
+function generateToken(para, time) {
+  try {
+    const token = JWT.sign(
+      { email: para },
+      "SECRET_KEY", // 本来は、envなどで秘密鍵を設定
+      { expiresIn: time }
+    );
+    return token;
+  } catch (error) {
+    console.error("[システムエラー]トークン生成エラー:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   authenticateToken,
   addUnableToken,
+  generateToken,
 };

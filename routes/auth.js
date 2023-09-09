@@ -2,11 +2,9 @@ const router = require("express").Router();
 const { body, validationResult } = require('express-validator');
 const {User} = require("../db/User");
 const bcrypt = require("bcrypt");
-const JWT = require("jsonwebtoken");
 const token_time_out = "120s";
 const exit_time = "1s"
 const checkJWT = require("../middleware/JWT");
-const {UnableToken} = require("../db/UnableToken");
 
 router.get("/", (req, res) => {
   res.send("Hello Auth JS");
@@ -15,7 +13,6 @@ router.get("/", (req, res) => {
 //ユーザー新規登録用のAPI
 router.post(
   "/register",
-  //バリデーションチェック
   body("email").isEmail(),
   body("password").isLength({ min: 6}),
   async (req, res) => {
@@ -50,7 +47,7 @@ router.post(
     console.log("DBへ保存が完了し、ユーザーが新たに登録されました。");
 
     // トークンを生成
-    const token = generateToken(email, token_time_out);
+    const token = checkJWT.generateToken(email, token_time_out);
 
     console.log("トークンがクライアント側に渡さされました。");
     return res.json({
@@ -93,7 +90,7 @@ router.post("/login", async (req, res) => {
   console.log("ユーザーがログインに成功しました。");
 
   ///トークンを生成
-  const token = generateToken(email, token_time_out);
+  const token = checkJWT.generateToken(email, token_time_out);
   console.log("トークンがクライアント側に渡さされました。");
   return res.json({
     token: token,
@@ -107,10 +104,10 @@ router.post("/logout", checkJWT.authenticateToken,async (req, res) => {
   //トークンを無効化
   const client_token = req.header("x-auth-token");
   checkJWT.addUnableToken(client_token);
-  console.log("トークンを無効化しました。")
+  console.log("トークンを無効化しました。");
 
   // 新しいトークンを生成
-  const token = generateToken(client_token, exit_time);
+  const token = checkJWT.generateToken(client_token, exit_time);
   console.log("新たなトークンを生成しました。");
 
   // クライアント側でトークンを更新することを通知
@@ -119,22 +116,5 @@ router.post("/logout", checkJWT.authenticateToken,async (req, res) => {
     token: token,
   });
 });
-
-// トークンを生成する共通の関数
-function generateToken(para, time) {
-  console.log("メールアドレス：", para, "に対するトークンを有効期限", time, "秒で生成します。");
-  try {
-    const token = JWT.sign(
-      { email: para },
-      "SECRET_KEY", // 本来は、envなどで秘密鍵を設定
-      { expiresIn: time }
-    );
-    console.log("メールアドレス：", para, "に対するトークンが有効期限", time, "秒で生成されました。");
-    return token;
-  } catch (error) {
-    console.error("[システムエラー]トークン生成エラー:", error);
-    throw error;
-  }
-}
 
 module.exports = router;
